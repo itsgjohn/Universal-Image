@@ -36,7 +36,6 @@ echo "==> Installing container tools"
 
 xbps-install -y \
     podman \
-    distrobox \
     crun \
     slirp4netns \
     fuse-overlayfs \
