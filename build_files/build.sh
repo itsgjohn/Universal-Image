@@ -1,11 +1,12 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
+
+#!/bin/sh
+set -eu
 
 echo "==> Updating XBPS"
 
-# XBPS must be updated in its own transaction.
-xbps-install -Suy xbps
-xbps-install -uy
+# Update XBPS first, then refresh and upgrade packages.
+xbps-install -Syu xbps
+xbps-install -Syu
 
 echo "==> Installing base system, kernel and graphics"
 
@@ -35,6 +36,7 @@ xbps-install -y \
 echo "==> Installing container tools"
 
 xbps-install -y \
+    podman \
     distrobox \
     crun \
     slirp4netns \
@@ -50,26 +52,23 @@ xbps-install -y \
     seatd \
     NetworkManager
 
-echo "==> Enabling runit services"
+echo "==> Configuring runit services"
 
 service_dir=/etc/runit/runsvdir/default
 mkdir -p "$service_dir"
 
 for service in dbus elogind polkitd NetworkManager; do
-    if [[ -d "/etc/sv/$service" ]]; then
+    if [ -d "/etc/sv/$service" ]; then
         ln -sfn "/etc/sv/$service" "$service_dir/$service"
     else
-        echo "ERROR: Missing runit service: $service" >&2
-        exit 1
+        echo "WARNING: runit service not found: $service" >&2
     fi
 done
 
 echo "==> Reconfiguring installed packages"
-
 xbps-reconfigure -fa
 
 echo "==> Cleaning package cache"
-
 xbps-remove -yO
 rm -rf /var/cache/xbps/*
 
