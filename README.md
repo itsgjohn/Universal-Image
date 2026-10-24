@@ -1,29 +1,7 @@
 # image-template
 
-This repository is meant to be a template for building your own custom [bootc](https://github.com/bootc-dev/bootc) image. This template is the recommended way to make customizations to any image published by the Universal Blue Project.
 
-# Community
 
-If you have questions about this template after following the instructions, try the following spaces:
-- [Universal Blue Forums](https://universal-blue.discourse.group/)
-- [Universal Blue Discord](https://discord.gg/8RZGC3uFzA)
-- [bootc discussion forums](https://github.com/bootc-dev/bootc/discussions) - This is not an Universal Blue managed space, but is an excellent resource if you run into issues with building bootc images.
-
-# How to Use
-
-To get started on your first bootc image, simply read and follow the steps in the next few headings.
-If you prefer instructions in video form, TesterTech created an excellent tutorial, embedded below.
-
-[![Video Tutorial](https://img.youtube.com/vi/IxBl11Zmq5w/0.jpg)](https://www.youtube.com/watch?v=IxBl11Zmq5wE)
-
-## Step 0: Prerequisites
-
-These steps assume you have the following:
-- A Github Account
-- A machine running a bootc image (e.g. Bazzite, Bluefin, Aurora, or Fedora Atomic)
-- Experience installing and using CLI programs
-
-## Step 1: Preparing the Template
 
 ### Step 1a: Copying the Template
 
@@ -77,28 +55,6 @@ gh secret set SIGNING_SECRET < cosign.key
 ```
 </details>
 
-### Step 2b: Choosing Your Base Image
-
-To choose a base image, simply modify the line in the container file starting with `FROM`. This will be the image your image derives from, and is your starting point for modifications.
-For a base image, you can choose any of the Universal Blue images or start from a Fedora Atomic system. Below this paragraph is a dropdown with a non-exhaustive list of potential base images.
-
-<details>
-    <summary>Base Images</summary>
-
-- Bazzite: `ghcr.io/ublue-os/bazzite:stable`
-- Aurora: `ghcr.io/ublue-os/aurora:stable`
-- Bluefin: `ghcr.io/ublue-os/bluefin:stable`
-- Universal Blue Base: `ghcr.io/ublue-os/base-main:latest`
-- Fedora: `quay.io/fedora/fedora-bootc:44`
-
-You can find more Universal Blue images on the [packages page](https://github.com/orgs/ublue-os/packages).
-</details>
-
-If you don't know which image to pick, choosing the one your system is currently on is the best bet for a smooth transition. To find out what image your system currently uses, run the following command:
-```bash
-sudo bootc status
-```
-This will show you all the info you need to know about your current image. The image you are currently on is displayed after `Booted image:`. Paste that information after the `FROM` statement in the Containerfile to set it as your base image.
 
 ### Step 2c: Changing Names
 
@@ -114,9 +70,7 @@ Once pushed, go look at the Actions tab on your Github repository's page.  The g
 
 ## Step 3: Switch to Your Image
 
-From your bootc system, run the following command substituting in your Github username and image name where noted.
-```bash
-sudo bootc switch ghcr.io/<username>/<image_name>
+
 ```
 This should queue your image for the next reboot, which you can do immediately after the command finishes. You have officially set up your custom image! See the following section for an explanation of the important parts of the template for customization.
 
@@ -142,7 +96,6 @@ This template provides a way to upload the disk images that is generated from th
 
 ## Setting Up ISO Builds
 
-The [build-disk.yml](./.github/workflows/build-disk.yml) Github Actions workflow creates a disk image from your OCI image by utilizing the [bootc-image-builder](https://osbuild.org/docs/bootc/). In order to use this workflow you must complete the following steps:
 
 1. Modify `disk_config/iso.toml` to point to your custom container image before generating an ISO image.
 2. If you changed your image name from the default in `build.yml` then in the `build-disk.yml` file edit the `IMAGE_REGISTRY`, `IMAGE_NAME` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
@@ -177,8 +130,6 @@ Container build:
 - [podman](https://docs.podman.io/en/latest)
 - [jq](https://jqlang.org)
 
-These are usually preinstalled on Universal Blue's Bootc Images.
-
 Linting:
 - shfmt
 - shellcheck
@@ -187,9 +138,6 @@ Linting:
 
 These are all sourced from the `image-template.env` file.
 
-- `image_name`: The name of the image (default: "image-template").
-- `default_tag`: The default tag for the image (default: "latest").
-- `bib_image`: The Bootc Image Builder (BIB) image (default: "quay.io/centos-bootc/bootc-image-builder:latest").
 
 ## Building The Image
 
@@ -211,13 +159,9 @@ Arguments:
 We can flatten the layers of container images to make sure there isn't a single huge layer when your image gets published.
 This does not make your image faster to download, just provides better resumability.
 
-#### `just ostree-rechunk`
-Rechunks the existing Image with [rpm-ostree](https://coreos.github.io/rpm-ostree/build-chunked-oci/)
 
-```bash
-just ostree-rechunk $target_image $tag
-```
 
+`
 #### `just rechunk`
 Rechunks the existing Image with [chunkah](https://github.com/coreos/chunkah), this is probably gonna be the default here at some point, try it out, it's cool.
 
@@ -229,19 +173,12 @@ just rechunk $target_image $tag
 
 The image has to be in the containers-storage owned by root, to be able to rebase to it, see the `_rootful_load_image` recipe.
 
-`sudo just build` and `sudo just ostree-rechunk` builds directly as root and allows you to skip the transfer to the root containers-storage.
-
 You can rebase to all the images that are in your containers-storage:
 
 ```
 sudo podman image list --filter=label=containers.bootc=1
 ```
 
-See [man bootc switch](https://bootc.dev/bootc/man/bootc-switch.8.html) for more info.
-
-```
-sudo bootc switch --transport containers-storage localhost/myimage:latest
-```
 
 and reboot your system!
 

@@ -1,27 +1,78 @@
-#!/bin/bash
 
-set -ouex pipefail
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Copy the contents of system_files/ of the git repo to /
-cp -avf "/ctx/system_files"/. /
+echo "==> Updating XBPS"
 
-### Install packages
+# XBPS must be updated in its own transaction.
+xbps-install -Suy xbps
+xbps-install -uy
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
+echo "==> Installing base system, kernel and graphics"
 
-# this installs a package from fedora repos
-dnf5 install -y tmux
+xbps-install -y \
+    base-system \
+    linux \
+    linux-headers \
+    linux-firmware \
+    linux-firmware-network \
+    linux-firmware-amd \
+    linux-firmware-intel \
+    mesa \
+    mesa-dri \
+    vulkan-loader \
+    mesa-vulkan-radeon \
+    mesa-vulkan-intel
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
+echo "==> Installing boot and filesystem tools"
 
-#### Example for enabling a System Unit File
+xbps-install -y \
+    grub \
+    grub-x86_64-efi \
+    efibootmgr \
+    btrfs-progs \
+    dracut
 
-systemctl enable podman.socket
+echo "==> Installing container tools"
+
+xbps-install -y \
+    podman \
+    distrobox \
+    crun \
+    slirp4netns \
+    fuse-overlayfs \
+    shadow
+
+echo "==> Installing session and networking components"
+
+xbps-install -y \
+    dbus \
+    elogind \
+    polkit \
+    seatd \
+    NetworkManager
+
+echo "==> Enabling runit services"
+
+service_dir=/etc/runit/runsvdir/default
+mkdir -p "$service_dir"
+
+for service in dbus elogind polkitd NetworkManager; do
+    if [[ -d "/etc/sv/$service" ]]; then
+        ln -sfn "/etc/sv/$service" "$service_dir/$service"
+    else
+        echo "ERROR: Missing runit service: $service" >&2
+        exit 1
+    fi
+done
+
+echo "==> Reconfiguring installed packages"
+
+xbps-reconfigure -fa
+
+echo "==> Cleaning package cache"
+
+xbps-remove -yO
+rm -rf /var/cache/xbps/*
+
+echo "==> Void image customization complete"
