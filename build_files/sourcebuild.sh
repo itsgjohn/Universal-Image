@@ -20,7 +20,7 @@ xbps-install -y \
     polkit-devel librsvg-devel libqalculate-devel \
     libxml2-devel jemalloc-devel
 
-echo "==> Downloading Noctalia ${NOCTALIA_TAG}"
+echo "==> Downloading Noctalia "
 mkdir -p /build /out
 cd /build
 
