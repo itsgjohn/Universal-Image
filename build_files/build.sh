@@ -45,21 +45,21 @@ xbps-install -y \
 
 echo "==> Installing applications"
 
-# gvfs + gvfs-afc (iPhone) + gvfs-mtp (Android): automount requirement.
-# There is no gvfs-fuse package in Void - the FUSE backend ships in main gvfs.
 xbps-install -y \
+    bash \
     elinks \
-    foot \
     fastfetch \
     fish-shell \
+    foot \
     fzf \
-    ripgrep \
-    tmux \
-    zoxide \
-    yazi \
     gvfs \
     gvfs-mtp \
     gvfs-afc \
+    mangowc \
+    ripgrep \
+    tmux \
+    yazi \
+    zoxide 
 
 echo "==> Installing container tools"
 
