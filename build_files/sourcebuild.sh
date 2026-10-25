@@ -1,8 +1,6 @@
 #!/bin/sh
 set -eu
 
-NOCTALIA_TAG=v5.2.0
-
 echo "==> Updating XBPS"
 xbps-install -Syu xbps
 xbps-install -Syu
@@ -27,7 +25,6 @@ mkdir -p /build /out
 cd /build
 
 git clone --depth 1 \
-    --branch "$NOCTALIA_TAG" \
     https://github.com/noctalia-dev/noctalia.git
 
 cd noctalia
