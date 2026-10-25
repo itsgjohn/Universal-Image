@@ -18,9 +18,6 @@ xbps-install -Syu
 
 echo "==> Installing base system, kernel, graphics and initramfs generator"
 
-# dracut must be installed BEFORE the kernel: Void registers initramfs
-# generators as XBPS alternatives, so the kernel install hook needs the
-# generator present at install time.
 xbps-install -y \
     base-system \
     dracut \
@@ -69,6 +66,16 @@ xbps-install -y \
     slirp4netns \
     fuse-overlayfs \
     shadow
+
+echo "==> Installing Noctalia runtime libraries"
+
+xbps-install -y \
+    sdbus-c++ \
+    libqalculate \
+    libical \
+    tomlplusplus \
+    libmd4c \
+    jemalloc
 
 echo "==> Hardware Control"
 
