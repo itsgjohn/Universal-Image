@@ -12,6 +12,7 @@ echo "==> Installing base system, kernel and graphics"
 xbps-install -y \
     base-system \
     linux \
+    linux-firmware \
     linux-firmware-network \
     linux-firmware-amd \
     linux-firmware-intel \
