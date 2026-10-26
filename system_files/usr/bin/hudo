@@ -1,0 +1,23 @@
+#!/bin/sh
+# Run a level above supeuser "hyperuser" and temporarliy access root.
+
+set -eu
+
+[ "$#" -gt 0 ] || { echo "usage: hudo <command> [args...]" >&2; exit 2; }
+[ "$(id -u)" -eq 0 ] || { echo "hudo: must run as root (use doas)" >&2; exit 1; }
+
+# Make sure / goes back to read-only even on Ctrl-C or kill
+cleanup() {
+    rc=$?
+    if ! mount -o remount,ro /; then
+        echo "hudo: ERROR: failed to remount / read-only" >&2
+        exit 1
+    fi
+    exit "$rc"
+}
+
+trap 'exit 1' INT TERM HUP
+trap cleanup EXIT
+
+mount -o remount,rw /
+"$@"

@@ -1,0 +1,6 @@
+# / is mounted read-only by the initramfs (kernel cmdline: rootflags=subvol=deploy/<id>,ro).
+# Partition labels are set by the deploy script: Btrfs = voidroot, ESP = ESP.
+LABEL=voidroot  /var	   btrfs   subvol=@var,compress=zstd,noatime               0 0
+LABEL=voidroot  /home	   btrfs   subvol=@home,compress=zstd,noatime              0 0
+LABEL=ESP	/boot/efi  vfat    umask=0077,noatime,nofail                       0 0
+tmpfs           /tmp	   tmpfs   defaults,nosuid,nodev,mode=1777                 0 0
