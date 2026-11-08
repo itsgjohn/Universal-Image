@@ -1,0 +1,30 @@
+#!/bin/sh
+# Run account-management commands against the otherwise read-only root.
+# Use it through doas, for example: doas acct useradd -m alice
+
+set -eu
+
+if [ "$#" -eq 0 ]; then
+    echo "usage: acct <command> [args...]" >&2
+    exit 2
+fi
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "acct: must run as root (use doas)" >&2
+    exit 1
+fi
+
+cleanup() {
+    rc=$?
+    if ! mount -o remount,ro /; then
+        echo "acct: ERROR: failed to remount / read-only" >&2
+        exit 1
+    fi
+    exit "$rc"
+}
+
+trap 'exit 1' INT TERM HUP
+trap cleanup EXIT
+
+mount -o remount,rw /
+"$@"
