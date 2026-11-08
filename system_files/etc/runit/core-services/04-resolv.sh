@@ -1,3 +1,4 @@
+#!/bin/sh
 # /etc is mounted read-only, but NetworkManager needs to write resolv.conf.
 # Put a writable file from the /run tmpfs on top of the image's copy.
 

@@ -1,3 +1,4 @@
+#!/bin/sh
 # Seed the persistent /var (@var) from the copy shipped in the image.
 # Existing files are never overwritten, so state survives updates, and
 # directories added by a newer image appear automatically.
