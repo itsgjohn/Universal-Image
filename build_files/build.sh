@@ -66,6 +66,7 @@ echo "==> Installing base system, kernel, graphics and initramfs generator"
 
 install_packages \
     base-system \
+    dash \
     dracut \
     linux \
     linux-firmware \
@@ -74,6 +75,7 @@ install_packages \
     linux-firmware-intel \
     mesa \
     mesa-dri \
+    tzdata \
     vulkan-loader
 
 echo "==> Installing boot and filesystem tools"
@@ -82,12 +84,12 @@ install_packages \
     grub \
     grub-x86_64-efi \
     efibootmgr \
-    btrfs-progs
+    btrfs-progs \
+    gptfdisk
 
 echo "==> Installing applications"
 
 install_packages \
-    bash \
     dejavu-fonts-ttf \
     elinks \
     fastfetch \
@@ -126,9 +128,11 @@ install_packages \
     brightnessctl \
     dbus \
     elogind \
+    pciutils \
     polkit \
     NetworkManager \
     usbmuxd \
+    usbutils \
     udisks2 \
     dosfstools \
     exfatprogs \
@@ -221,10 +225,6 @@ rm -f /usr/lib/python3.14/site-packages/imobiledevice.a
 rm -rf /usr/lib/girepository-1.0
 rm -rf /usr/share/mime
 rm -rf /usr/lib/gconv
-
-# Keep UTC only; the deploy script can add a timezone later.
-find /usr/share/zoneinfo -mindepth 1 -maxdepth 1 \
-    ! -name UTC ! -name Etc -exec rm -rf {} +
 
 # Git only needs Perl for its optional email helpers. The image does not need
 # Perl to boot or to run any installed app, so drop it and its modules.

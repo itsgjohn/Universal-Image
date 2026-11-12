@@ -10,6 +10,8 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh && /ctx/info.sh
 
+COPY --from=ctx /system_files/usr/share/factory/resolv.conf /etc/resolv.conf
+
 # Fail the build if the desktop apps or a runtime library are missing.
 RUN test -x /usr/bin/noctalia \
     && test -x /usr/bin/mango \

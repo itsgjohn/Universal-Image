@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+
+fallback_shell() {
+    if [ -x /usr/bin/fish ]; then
+        exec /usr/bin/fish -l
+    fi
+    exec /bin/sh -l
+}
+
+if [ "${1:-}" = "--session" ]; then
+    shift
+
+    export XDG_SESSION_TYPE=wayland
+    export XDG_SESSION_DESKTOP=mango
+    export XDG_CURRENT_DESKTOP=mango
+    export SHELL=/usr/bin/fish
+    export WLR_RENDERER_ALLOW_SOFTWARE=1
+
+    runtime_dir=/run/user/$(id -u)
+    if [ ! -d "$runtime_dir" ]; then
+        runtime_dir=/tmp/void-$(id -u)
+        mkdir -p "$runtime_dir"
+        chmod 700 "$runtime_dir"
+    fi
+    export XDG_RUNTIME_DIR="$runtime_dir"
+
+    if [ -x /usr/bin/pipewire ]; then
+        /usr/bin/pipewire >/dev/null 2>&1 &
+    fi
+    if [ -x /usr/bin/wireplumber ]; then
+        /usr/bin/wireplumber >/dev/null 2>&1 &
+    fi
+
+    /usr/bin/mango >>"${HOME:-/tmp}/.mango.log" 2>&1 || true
+    fallback_shell
+fi
+
+tty_path=$(tty 2>/dev/null || true)
+if [ "$tty_path" != /dev/tty1 ] ||
+   [ -n "${WAYLAND_DISPLAY:-}" ] ||
+   [ -n "${DISPLAY:-}" ]; then
+    fallback_shell
+fi
+
+if [ -x /usr/bin/dbus-run-session ]; then
+    exec /usr/bin/dbus-run-session -- /usr/bin/void-session --session
+fi
+
+exec /usr/bin/void-session --session

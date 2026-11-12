@@ -7,7 +7,7 @@ on_exit() {
         echo "info.sh failed (exit $rc)" >&2
     fi
 }
-trap on_exit EXIT
+trap on_exit 0
 
 TIMEZONE="${TIMEZONE:-UTC}"
 
@@ -17,7 +17,7 @@ require() {
 }
 
 echo "==> Setting permissions on system files"
-chmod 0755 /usr/bin/acct /usr/bin/hudo
+chmod 0755 /usr/bin/acct /usr/bin/hudo /usr/bin/void-session
 chmod 0400 /etc/doas.conf
 
 echo "==> Runit: keep the root read-only"
@@ -82,6 +82,70 @@ mkdir -p /var/db
 ln -sfn /usr/share/xbps-db /var/db/xbps
 rm -rf /var/cache/xbps/*
 
+echo "==> Configuring elogind"
+cat > /usr/libexec/elogind/elogind.wrapper <<'EOF'
+#!/bin/sh
+cgroup=/sys/fs/cgroup/elogind
+
+mkdir -p "$cgroup"
+if ! mountpoint "$cgroup" > /dev/null; then
+	mount -t cgroup -o none,name=elogind cgroup "$cgroup" || exit 1
+fi
+
+for tmpfs in /run/systemd /run/user; do
+	mountpoint "$tmpfs" > /dev/null && continue
+	mkdir -p "$tmpfs"
+	mount -t tmpfs -o nosuid,nodev,noexec,mode=0755 none "$tmpfs" || exit 1
+done
+
+while pgrep -x elogind >/dev/null 2>&1 ||
+      pgrep -x elogind-daemon >/dev/null 2>&1 ||
+      pgrep -f '^/usr/libexec/elogind/elogind' >/dev/null 2>&1; do
+	sleep 1
+done
+
+exec /usr/libexec/elogind/elogind
+EOF
+chmod 0755 /usr/libexec/elogind/elogind.wrapper
+
+echo "==> Ordering gettys after logind"
+cat > /etc/sv/agetty-generic/run <<'EOF'
+#!/bin/sh
+
+tty=${PWD##*-}
+
+sv check dbus >/dev/null || exit 1
+sv check elogind >/dev/null || exit 1
+
+[ -r conf ] && . ./conf
+
+if [ -x /sbin/getty -o -x /bin/getty ]; then
+	GETTY=getty
+elif [ -x /sbin/agetty -o -x /bin/agetty ]; then
+	GETTY=agetty
+fi
+
+exec chpst -P ${GETTY} ${GETTY_ARGS} \
+	"${tty}" "${BAUD_RATE}" "${TERM_NAME}"
+EOF
+chmod 0755 /etc/sv/agetty-generic/run
+
+echo "==> Configuring login shells"
+usermod -s /bin/sh root
+touch /etc/shells
+grep -qxF /usr/bin/void-session /etc/shells ||
+    printf '%s\n' /usr/bin/void-session >> /etc/shells
+
+echo "==> Configuring Mango autostart"
+mango_conf=/etc/mango/config.conf
+if [ ! -f "$mango_conf" ]; then
+    echo "ERROR: Mango config not found: $mango_conf" >&2
+    exit 1
+fi
+if ! grep -qE '^[[:space:]]*exec_once[[:space:]]*=[[:space:]]*noctalia([[:space:]]|$)' "$mango_conf"; then
+    printf '\nexec_once = noctalia\n' >> "$mango_conf"
+fi
+
 echo "==> Locking root (accounts are created at deploy time)"
 passwd -l root
 echo "==> Runit: moving supervise state into /var"
@@ -134,6 +198,21 @@ require test -d /usr/share/xbps-db
 require test -L /usr/share/factory/var/db/xbps
 require test -x /usr/bin/acct
 require test -x /usr/bin/doas
+require test -x /usr/bin/mango
+require test -x /usr/bin/noctalia
+require test -x /usr/bin/void-session
+require test -x /usr/bin/fish
+require test -x /usr/bin/dbus-run-session
+require test -x /usr/bin/pipewire
+require test -x /usr/bin/wireplumber
+require test "$(readlink -f /bin/sh)" = /usr/bin/dash
+require grep -q '^root:.*:/root:/bin/sh$' /etc/passwd
+require grep -qxF /usr/bin/void-session /etc/shells
+require grep -qE '^[[:space:]]*exec_once[[:space:]]*=[[:space:]]*noctalia([[:space:]]|$)' /etc/mango/config.conf
+require test -e /usr/share/zoneinfo/Europe/Berlin
+require test -e /usr/share/zoneinfo/America/New_York
+require test -e /usr/share/zoneinfo/Asia/Tokyo
+require test -e /etc/runit/runsvdir/default/elogind
 
 # Every service must have a writable supervise target, or it dies at boot.
 for d in /etc/sv/*; do

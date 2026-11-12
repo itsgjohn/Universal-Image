@@ -9,6 +9,7 @@ set -eu
 # Make sure / goes back to read-only even on Ctrl-C or kill
 cleanup() {
     rc=$?
+    trap - 0
     if ! mount -o remount,ro /; then
         echo "hudo: ERROR: failed to remount / read-only" >&2
         exit 1
@@ -17,7 +18,7 @@ cleanup() {
 }
 
 trap 'exit 1' INT TERM HUP
-trap cleanup EXIT
+trap cleanup 0
 
 mount -o remount,rw /
 "$@"
